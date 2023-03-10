@@ -13,18 +13,21 @@ internal static class Program
     private static void Main()
     {
         int resetTries = 0;
+        int resets;
         while (true)
         {
             Process[] processes = Process.GetProcessesByName("main");
-            string pjName = "unknown";
+            if (processes.Length == 0)
+            {
+                Console.WriteLine("Waiting for mu online");
+            }
 
             foreach (Process proc in processes)
             {
-                string? title = proc.MainWindowTitle.Trim();
-                int level = getLevelFromWindowsTitle(title);
-                pjName = getPjNameFromWindowsTitle(title);
+                (string pjName, int level) = getPsjNameAndLevel(proc.Id);
+                if (pjName == "unknown" && level == 0) { continue; }
                 Console.WriteLine(pjName + " level -> " + level);
-                if (level >= 350)
+                if (level >= 400)
                 {
                     resetTries++;
 
@@ -37,25 +40,28 @@ internal static class Program
                     Thread.Sleep(1 * 1000);
                     SendKeys.SendWait("{ENTER}");
                     Thread.Sleep(1 * 500);
-                    SendKeys.SendWait("{ENTER}");
-                    Thread.Sleep(1 * 500);
-                    SendKeys.SendWait("{ENTER}");
-                    Thread.Sleep(1 * 500);
-
                 }
                 else
                 {
                     Thread.Sleep(1 * 1500);
                     resetTries = 0;
                 }
+                if (resetTries >= RESET_RETRY_TRESHOLD)
+                {
+                    Console.WriteLine("Error reseting " + pjName);
+                }
             }
-
-            if (resetTries >= RESET_RETRY_TRESHOLD)
-            {
-                Console.WriteLine("Error reseting " + pjName);
-            }
-
         }
+    }
+
+    private static (string, int) getPsjNameAndLevel(int processId)
+    {
+        Process? proc = Process.GetProcessById(processId);
+        string? title = proc.MainWindowTitle.Trim();
+        int level = getLevelFromWindowsTitle(title);
+        string pjName = getPjNameFromWindowsTitle(title);
+        return (pjName, level);
+
     }
 
     private static int getLevelFromWindowsTitle(string title)
@@ -80,6 +86,6 @@ internal static class Program
             return match.Groups[1].Value;
 
         }
-        return "unknon";
+        return "unknown";
     }
 }
