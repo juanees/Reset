@@ -33,18 +33,19 @@ internal static class Program
     private static void Bot_PlayerResetted(object? sender, PlayerResettedEventArgs e)
     {
         resetStopWatch.Stop();
-        Console.WriteLine($"The player {e.Name} has resetted in {resetStopWatch.Elapsed.TotalSeconds} seconds, after a total of {e.ResetAttempts} attempts! Total number of resets from this current session: {e.Resets}");
-        resetStopWatch.Start();
+        Console.WriteLine($"The player {e.Name} has resetted in {resetStopWatch.Elapsed:g}, after a total of {e.ResetAttempts} attempts! Total number of resets from this current session: {e.Resets}");
+        resetStopWatch.Restart();
     }
 
     private static void Bot_PlayerLeveledUp(object? sender, PlayerLeveledUpEventArgs e)
     {
         levelStopWatch.Stop();
         int elapsed = levelStopWatch.Elapsed.Seconds;
-        Console.WriteLine($"The player {e.Name} has leveled up " +
-            $"{(elapsed > 1 ? $"after {elapsed} seconds" : "")}! " +
-            $"Current leve: {e.Level}");
-        levelStopWatch.Start();
+        Console.WriteLine($"The player {e.Name} has leveled up!" +
+            $"Current leve: {e.Level}" +
+            $"{(elapsed > 5 ? $". Delta {levelStopWatch.Elapsed:g}" : "")}"
+            );
+        levelStopWatch.Restart();
     }
 
     private static void Bot_ProcessNotFound(object? sender, EventArgs e)

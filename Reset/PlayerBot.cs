@@ -31,6 +31,7 @@ namespace Reset
 
         public void StartBot()
         {
+            bool firstLevel = true;
             CancellationToken cancellationToken = cancellationTokenSource.Token;
             Task.Run(() =>
                 {
@@ -42,10 +43,15 @@ namespace Reset
                             ProcessFound?.Invoke(this, EventArgs.Empty);
                             (string playerName, int playerLevel) = getPsjNameAndLevel(process.Id);
 
+                            if (firstLevel)
+                            {
+                                lastLevel = playerLevel;
+                                firstLevel = false;
+                            }
+
                             if (lastLevel >= resetLevel && playerLevel < lastLevel)
                             {
                                 resets++;
-                                resetAttempts = 0;
                                 PlayerResettedEventArgs args = new PlayerResettedEventArgs
                                 {
                                     Name = playerName,
@@ -53,9 +59,10 @@ namespace Reset
                                     ResetAttempts = resetAttempts,
                                 };
                                 OnPlayerResetted(args);
+                                firstLevel = true;
+                                resetAttempts = 0;
                             }
-
-                            if (playerLevel != lastLevel)
+                            else if (playerLevel > lastLevel)
                             {
                                 PlayerLeveledUpEventArgs args = new PlayerLeveledUpEventArgs
                                 {
@@ -63,19 +70,21 @@ namespace Reset
                                     Level = playerLevel
                                 };
                                 OnPlayerLeveledUp(args);
-                                lastLevel = playerLevel;
                             }
-
-                            if (playerLevel >= resetLevel)
+                            else if (playerLevel >= resetLevel)
                             {
+                                Thread.Sleep(TimeSpan.FromSeconds(.5).Milliseconds);
                                 SetForegroundWindow(process.MainWindowHandle);
+                                Thread.Sleep(TimeSpan.FromSeconds(.5).Milliseconds);
                                 SendKeys.SendWait("{ENTER}");
+                                Thread.Sleep(TimeSpan.FromSeconds(.5).Milliseconds);
                                 SendKeys.SendWait("/reset");
-                                Thread.Sleep(TimeSpan.FromSeconds(1.5).Milliseconds);
+                                Thread.Sleep(TimeSpan.FromSeconds(.5).Milliseconds);
                                 SendKeys.SendWait("{ENTER}");
                                 Thread.Sleep(TimeSpan.FromSeconds(.5).Milliseconds);
                                 resetAttempts++;
                             }
+                            lastLevel = playerLevel;
                         }
                         else
                         {
