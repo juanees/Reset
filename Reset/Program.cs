@@ -1,91 +1,67 @@
-﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
+﻿using Reset;
+using System.Diagnostics;
 
 internal static class Program
 {
-    public static int RESET_RETRY_TRESHOLD = 10;
+    private static bool? processFound = null;
+    private static Stopwatch resetStopWatch;
+    private static Stopwatch levelStopWatch;
 
-    [DllImport("user32.dll")]
-    public static extern int SetForegroundWindow(IntPtr hWnd);
-
-    [STAThread]
     private static void Main()
     {
-        int resetTries = 0;
-        int resets;
-        while (true)
+        resetStopWatch = Stopwatch.StartNew();
+        levelStopWatch = Stopwatch.StartNew();
+        PlayerBot bot = new(TimeSpan.FromSeconds(1.5), 400);
+
+        bot.ProcessFound += Bot_ProcessFound;
+        bot.ProcessNotFound += Bot_ProcessNotFound;
+        bot.PlayerLeveledUp += Bot_PlayerLeveledUp;
+        bot.PlayerResetted += Bot_PlayerResetted;
+
+        Console.WriteLine(">Press any key to STAR and STOP the bot<");
+
+        Console.ReadKey();
+        bot.StartBot();
+        resetStopWatch.Start();
+        Console.WriteLine("Bot started");
+        Console.ReadKey();
+        bot.StopBot();
+        Console.WriteLine("Bot stopped");
+    }
+
+
+    private static void Bot_PlayerResetted(object? sender, PlayerResettedEventArgs e)
+    {
+        resetStopWatch.Stop();
+        Console.WriteLine($"The player {e.Name} has resetted in {resetStopWatch.Elapsed.TotalSeconds} seconds, after a total of {e.ResetAttempts} attempts! Total number of resets from this current session: {e.Resets}");
+        resetStopWatch.Start();
+    }
+
+    private static void Bot_PlayerLeveledUp(object? sender, PlayerLeveledUpEventArgs e)
+    {
+        levelStopWatch.Stop();
+        int elapsed = levelStopWatch.Elapsed.Seconds;
+        Console.WriteLine($"The player {e.Name} has leveled up " +
+            $"{(elapsed > 1 ? $"after {elapsed} seconds" : "")}! " +
+            $"Current leve: {e.Level}");
+        levelStopWatch.Start();
+    }
+
+    private static void Bot_ProcessNotFound(object? sender, EventArgs e)
+    {
+        if (!processFound.HasValue || processFound.Value)
         {
-            Process[] processes = Process.GetProcessesByName("main");
-            if (processes.Length == 0)
-            {
-                Console.WriteLine("Waiting for mu online");
-            }
-
-            foreach (Process proc in processes)
-            {
-                (string pjName, int level) = getPsjNameAndLevel(proc.Id);
-                if (pjName == "unknown" && level == 0) { continue; }
-                Console.WriteLine(pjName + " level -> " + level);
-                if (level >= 400)
-                {
-                    resetTries++;
-
-                    Console.WriteLine("trying to reset " + pjName + " for the " + resetTries + " time");
-
-                    SetForegroundWindow(proc.MainWindowHandle);
-
-                    SendKeys.SendWait("{ENTER}");
-                    SendKeys.SendWait("/reset");
-                    Thread.Sleep(1 * 1000);
-                    SendKeys.SendWait("{ENTER}");
-                    Thread.Sleep(1 * 500);
-                }
-                else
-                {
-                    Thread.Sleep(1 * 1500);
-                    resetTries = 0;
-                }
-                if (resetTries >= RESET_RETRY_TRESHOLD)
-                {
-                    Console.WriteLine("Error reseting " + pjName);
-                }
-            }
+            Console.WriteLine($"The process was not found");
+            processFound = false;
         }
     }
 
-    private static (string, int) getPsjNameAndLevel(int processId)
+    private static void Bot_ProcessFound(object? sender, EventArgs e)
     {
-        Process? proc = Process.GetProcessById(processId);
-        string? title = proc.MainWindowTitle.Trim();
-        int level = getLevelFromWindowsTitle(title);
-        string pjName = getPjNameFromWindowsTitle(title);
-        return (pjName, level);
-
-    }
-
-    private static int getLevelFromWindowsTitle(string title)
-    {
-
-        Regex regex = new Regex(@"[a-zA-Z0-9 ] \|\| [a-zA-Z0-9]+ \|\| Level \+ Master Level: (\d+) \|\| Str: \d+ \|\| Agi: \d+ \|\| Vit: \d+ \|\| Ene: \d+");
-        Match match = regex.Match(title);
-        if (match.Success)
+        if (!processFound.HasValue || !processFound.Value)
         {
-            string value1 = match.Groups[1].Value;
-            return int.Parse(value1);
+            Console.WriteLine($"The process was found");
+            processFound = true;
         }
-        return 0;
-    }
-
-    private static string getPjNameFromWindowsTitle(string title)
-    {
-        Regex regex = new Regex(@"[a-zA-Z0-9 ] \|\| ([a-zA-Z0-9]+) \|\| Level \+ Master Level: \d+ \|\| Str: \d+ \|\| Agi: \d+ \|\| Vit: \d+ \|\| Ene: \d+");
-        Match match = regex.Match(title);
-        if (match.Success)
-        {
-            return match.Groups[1].Value;
-
-        }
-        return "unknown";
     }
 }
