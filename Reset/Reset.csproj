@@ -10,9 +10,7 @@
   <PropertyGroup>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
-  <ItemGroup>
-    <AdditionalFiles Update="app.manifest">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </AdditionalFiles>
+  <ItemGroup> 
+  <None Update="send_message_reset.ahk" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
