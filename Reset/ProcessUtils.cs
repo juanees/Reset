@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
-namespace Reset
+namespace ResetterBot
 {
   public static class ProcessUtils
   {

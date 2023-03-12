@@ -2,13 +2,15 @@
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
-namespace Reset
+namespace ResetterBot
 {
   internal class PlayerBot
   {
+    [DllImport("user32.dll")]
+    public static extern int SetForegroundWindow(IntPtr hWnd);
 
     public event EventHandler<PlayerLeveledUpEventArgs> PlayerLeveledUp;
-    public event EventHandler TryingToReset;
+    public event EventHandler<PlayerBaseEventArgs> TryingToReset;
     public event EventHandler<PlayerResettedEventArgs> PlayerResetted;
     public event EventHandler ProcessNotFound;
     public event EventHandler ProcessFound;
@@ -35,7 +37,7 @@ namespace Reset
           {
             while (!cancellationToken.IsCancellationRequested)
             {
-              (Process? process, bool foundProcess) = tryGetGameProcess();
+              (Process? process, bool foundProcess) = tryToGetGameProcess();
               if (foundProcess && process != null)
               {
                 ProcessFound?.Invoke(this, EventArgs.Empty);
@@ -52,7 +54,7 @@ namespace Reset
                   resets++;
                   PlayerResettedEventArgs args = new PlayerResettedEventArgs
                   {
-                    Name = playerName,
+                    PlayerName = playerName,
                     Resets = resets,
                     ResetAttempts = resetAttempts,
                   };
@@ -64,7 +66,7 @@ namespace Reset
                 {
                   PlayerLeveledUpEventArgs args = new PlayerLeveledUpEventArgs
                   {
-                    Name = playerName,
+                    PlayerName = playerName,
                     Level = playerLevel
                   };
                   OnPlayerLeveledUp(args);
@@ -85,41 +87,29 @@ namespace Reset
           }, cancellationToken);
     }
 
-    private void tryToReset(Process process)
-    {
-      var activeProcess = ProcessUtils.GetForegroundProcess();
-      if (activeProcess != null && activeProcess.Id == process.Id)
-      { 
-        Thread.Sleep(TimeSpan.FromSeconds(Random.Shared.NextDouble() * 1).Milliseconds);
-        TryingToReset?.Invoke(this, EventArgs.Empty);
-        ProcessUtils.Execute("send_message_reset.ahk");
-      }
-    }
-
     public void StopBot()
     {
       cancellationTokenSource.Cancel();
     }
 
-    protected virtual void OnPlayerResetted(PlayerResettedEventArgs e)
+    private void tryToReset(Process process)
     {
-      EventHandler<PlayerResettedEventArgs> handler = PlayerResetted;
-      if (handler != null)
+      SetForegroundWindow(process.MainWindowHandle);
+      var activeProcess = ProcessUtils.GetForegroundProcess();
+      if (activeProcess != null && activeProcess.Id == process.Id)
       {
-        handler(this, e);
+        Thread.Sleep(TimeSpan.FromSeconds(Random.Shared.NextDouble() * 1).Milliseconds);
+        (string playerName, _) = getPjNameAndLevel(process.Id);
+        PlayerBaseEventArgs args = new PlayerBaseEventArgs
+        {
+          PlayerName = playerName,
+        };
+        OnTryingToReset(args);
+        ProcessUtils.Execute("send_message_reset.ahk");
       }
     }
 
-    protected virtual void OnPlayerLeveledUp(PlayerLeveledUpEventArgs e)
-    {
-      EventHandler<PlayerLeveledUpEventArgs> handler = PlayerLeveledUp;
-      if (handler != null)
-      {
-        handler(this, e);
-      }
-    }
-
-    private (Process?, bool) tryGetGameProcess()
+    private (Process?, bool) tryToGetGameProcess()
     {
       try
       {
@@ -155,5 +145,33 @@ namespace Reset
       }
       return (pjName, pjLevel);
     }
+
+    protected virtual void OnPlayerResetted(PlayerResettedEventArgs e)
+    {
+      EventHandler<PlayerResettedEventArgs> handler = PlayerResetted;
+      if (handler != null)
+      {
+        handler(this, e);
+      }
+    }
+
+    protected virtual void OnTryingToReset(PlayerBaseEventArgs e)
+    {
+      EventHandler<PlayerBaseEventArgs> handler = TryingToReset;
+      if (handler != null)
+      {
+        handler(this, e);
+      }
+    }
+
+    protected virtual void OnPlayerLeveledUp(PlayerLeveledUpEventArgs e)
+    {
+      EventHandler<PlayerLeveledUpEventArgs> handler = PlayerLeveledUp;
+      if (handler != null)
+      {
+        handler(this, e);
+      }
+    }
+
   }
 }

@@ -1,8 +1,7 @@
-﻿namespace Reset
+﻿namespace ResetterBot
 {
-    internal class PlayerLeveledUpEventArgs
+    internal class PlayerLeveledUpEventArgs : PlayerBaseEventArgs
     {
-        public string Name { get; set; }
         public int Level { get; set; }
     }
 }

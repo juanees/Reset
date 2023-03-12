@@ -1,8 +1,7 @@
-﻿namespace Reset
+﻿namespace ResetterBot
 {
-    internal class PlayerResettedEventArgs
+    internal class PlayerResettedEventArgs : PlayerBaseEventArgs
     {
-        public string Name { get; set; }
         public int Resets { get; set; }
         public int ResetAttempts { get; set; }
     }
