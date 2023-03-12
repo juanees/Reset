@@ -11,11 +11,16 @@ internal static class Program
     {
         resetStopWatch = Stopwatch.StartNew();
         levelStopWatch = Stopwatch.StartNew();
-        PlayerBot bot = new(TimeSpan.FromSeconds(1.5), 400);
+        var refreshRate = 1 + (Random.Shared.NextDouble() * .5);
+        var resetLevel = 350;
+
+        Console.WriteLine($"Bot configured with a refresh rate of: {refreshRate} and a reset level of {resetLevel}");
+        PlayerBot bot = new(TimeSpan.FromSeconds(refreshRate), resetLevel);
 
         bot.ProcessFound += Bot_ProcessFound;
         bot.ProcessNotFound += Bot_ProcessNotFound;
         bot.PlayerLeveledUp += Bot_PlayerLeveledUp;
+        bot.TryingToReset += Bot_TryingToReset;
         bot.PlayerResetted += Bot_PlayerResetted;
 
         Console.WriteLine(">Press any key to STAR and STOP the bot<");
@@ -35,6 +40,11 @@ internal static class Program
         resetStopWatch.Stop();
         Console.WriteLine($"The player {e.Name} has resetted in {resetStopWatch.Elapsed:g}, after a total of {e.ResetAttempts} attempts! Total number of resets from this current session: {e.Resets}");
         resetStopWatch.Restart();
+    }
+
+    private static void Bot_TryingToReset(object? sender, EventArgs e){
+        Console.WriteLine($"Trying to reset the character");
+        
     }
 
     private static void Bot_PlayerLeveledUp(object? sender, PlayerLeveledUpEventArgs e)
